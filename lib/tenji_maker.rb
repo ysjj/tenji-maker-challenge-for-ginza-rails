@@ -2,10 +2,31 @@
 
 # nodoc:
 class TenjiMaker
+  # nodoc:
+  module TenjiBit
+    refine String do
+      def to_bits
+        # char を(子)(母)に分割
+        # (子)(母)の組み合わせからビットパターンを生成
+        /^(.)?(.)$/.match(self)
+                   .captures
+                   .then { |c1, c2| SIIN[c1][BOIN[c2]] }
+      end
+    end
+
+    refine Numeric do
+      def to_tenji_array
+        format('%06b', self).tr('01', '-o').scan(/../)
+      end
+    end
+  end
+
+  using TenjiBit
+
   def to_tenji(text)
     text.split(' ')
-        .map { |char| to_bits(char) }
-        .map { |bits| to_tenji_array(bits) }
+        .map(&:to_bits)
+        .map(&:to_tenji_array)
         .transpose
         .map { |line| line.join(' ') }
         .join("\n")
@@ -33,18 +54,6 @@ class TenjiMaker
   end
 
   private
-
-  def to_bits(char)
-    # char を(子)(母)に分割
-    # (子)(母)の組み合わせからビットパターンを生成
-    /^(.)?(.)$/.match(char)
-               .captures
-               .then { |c1, c2| SIIN[c1][BOIN[c2]] }
-  end
-
-  def to_tenji_array(bits)
-    format('%06b', bits).tr('01', '-o').scan(/../)
-  end
 
   # http://www.naiiv.net/braille/?tenji-sikumi
   # ビット列は文字の出力順に合わせており、
