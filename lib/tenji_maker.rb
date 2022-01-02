@@ -38,14 +38,11 @@ class TenjiMaker
     # char を(子)(促)(拗)(母)|(単)に分割
     # 分割結果の組み合わせからビットパターンを生成
     /^(?:(.)?(\1)?(Y)?([AIUEO])|([-N]))$/
-      .match(char).captures
+      .match(char)
+      .captures
       .then do |si, so, yo, bo, ta|
-        [
-          sokuon_if(so),
-          inject_yoon_if(yo, FUKU[si][TAN[bo || ta]])
-        ]
+        SOKU[so][YO[yo][FUKU[si][TAN[bo || ta]]]]
       end
-      .compact.flatten
   end
 
   def to_tenji_array(bits)
@@ -81,6 +78,21 @@ class TenjiMaker
     'B' => ->(b) { dakuon('H', b) },
     'P' => ->(b) { handakuon('H', b) }
   }.freeze
+  SOKU = {
+    nil => ->(base) { base }
+  }.tap do |h|
+    h.default = ->(base) { [0b00_10_00, *base] }
+  end
+  YO = {
+    nil => ->(base) { base }
+  }.tap do |h|
+    h.default = lambda { |base|
+      # 濁音 / 半濁音は拗音と bitwise or する。
+      base = [0, base] unless base.respond_to?(:[]=)
+      base[0] |= 0b01_00_00
+      base
+    }
+  end
 
   class << self
     private
@@ -99,17 +111,5 @@ class TenjiMaker
     def handakuon(fuku, tan)
       [0b00_00_01, FUKU[fuku][tan]]
     end
-  end
-
-  def sokuon_if(soku)
-    soku ? 0b00_10_00 : nil
-  end
-
-  def inject_yoon_if(yoo, pair)
-    if yoo
-      pair = [0, pair] unless pair.is_a?(Array)
-      pair[0] |= 0b01_00_00
-    end
-    pair
   end
 end
